@@ -9,7 +9,7 @@ import time
 logging.basicConfig(filename="scraper.log", level=logging.INFO,
                     format="%(asctime)s - %(message)s")
 
-base_url = "https://books.toscrape.com/catalogue/page-{}.html"
+base_url = base_url = "https://books.toscrape.com/catalogue/page-{}.html"
 total_pages = 5
 wait_time = 0.5
 
@@ -18,7 +18,7 @@ wait_time = 0.5
 def get_page(url):
     try:
         r = requests.get(url, timeout=15)
-        r.encoding = "utf-8"   # encoding set kar rahe hain price/text sahi dikhane ke liye
+        r.encoding = "utf-8"   
         return r.text
     except Exception as e:
         print("Error aaya:", e)
@@ -71,6 +71,9 @@ def extract_data(html):
 
 
 def save_to_csv(data):
+    if not data:
+        print("No data found")
+        return pd.DataFrame()
     df = pd.DataFrame(data)
 
     
@@ -101,14 +104,13 @@ def main():
         pages_done = pages_done + 1
         time.sleep(wait_time)
 
-    
+    # csv me save karo
     df = save_to_csv(all_books)
 
     logging.info("Total pages: " + str(pages_done))
     logging.info("Total records: " + str(len(df)))
     logging.info("Scraper khatam")
 
-    # summary print karte hain
     print("\n----- SUMMARY -----")
     print("Pages scraped:", pages_done)
     print("Total records:", len(all_books))
