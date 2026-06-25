@@ -1,18 +1,20 @@
-
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import logging
 import time
+from database import DatabaseManager
 
 
 logging.basicConfig(filename="scraper.log", level=logging.INFO,
                     format="%(asctime)s - %(message)s")
 
-base_url = base_url = "https://books.toscrape.com/catalogue/page-{}.html"
+base_url = "https://books.toscrape.com/catalogue/page-{}.html"
 total_pages = 5
 wait_time = 0.5
 
+# Initialize database manager
+db_manager = DatabaseManager()
 
 
 def get_page(url):
@@ -84,10 +86,36 @@ def save_to_csv(data):
     return df
 
 
+def save_to_database(data):
+    """Save data to PostgreSQL database"""
+    if not data:
+        print("No data to save to database")
+        return 0, 0
+    
+    # Connect to database
+    if not db_manager.connect():
+        print("Could not connect to database - skipping database save")
+        logging.warning("Database save skipped due to connection failure")
+        return 0, 0
+    
+    # Create table if needed
+    db_manager.create_table()
+    
+    # Insert data
+    success, inserted, duplicates = db_manager.insert_books(data)
+    
+    # Disconnect
+    db_manager.disconnect()
+    
+    return inserted, duplicates
+
+
 def main():
     logging.info("Scraper start hua")
     all_books = []
     pages_done = 0
+    db_inserted = 0
+    db_duplicates = 0
 
     
     for i in range(1, total_pages + 1):
@@ -106,16 +134,27 @@ def main():
 
     # csv me save karo
     df = save_to_csv(all_books)
+    
+    # Database me save karo
+    print("\nDatabase me save kar rahe hain...")
+    db_inserted, db_duplicates = save_to_database(all_books)
 
     logging.info("Total pages: " + str(pages_done))
-    logging.info("Total records: " + str(len(df)))
+    logging.info("Total records scraped: " + str(len(all_books)))
+    logging.info("CSV records saved: " + str(len(df)))
+    logging.info("Database new records: " + str(db_inserted))
+    logging.info("Database duplicates: " + str(db_duplicates))
     logging.info("Scraper khatam")
 
     print("\n----- SUMMARY -----")
     print("Pages scraped:", pages_done)
-    print("Total records:", len(all_books))
-    print("Records saved:", len(df))
+    print("Total records scraped:", len(all_books))
+    print("CSV records saved:", len(df))
+    print("Database new records:", db_inserted)
+    print("Database duplicates:", db_duplicates)
     print("File: output.csv")
+    print("Database: scraper_db (books table)")
 
 
-main()
+if __name__ == "__main__":
+    main()
