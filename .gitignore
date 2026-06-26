@@ -1,0 +1,7 @@
+﻿.env
+venv/
+__pycache__/
+*.log
+output.csv
+bulk_output.csv
+bulk_output.json
